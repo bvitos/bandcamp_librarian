@@ -1,0 +1,52 @@
+﻿version: "2"
+
+services:
+  soundscraper:
+    build: scraper/
+    env_file:
+      - .vars.env
+    environment:
+      TZ: "Europe/Berlin"
+    volumes:
+      - ./config:/config
+    restart: always
+    stdin_open: true
+
+  etl:
+    build: etl/
+    depends_on:
+      - pg_container
+    env_file:
+      - .vars.env
+    environment:
+      TZ: "Europe/Berlin"
+    volumes:
+      - ./config:/config
+    restart: always
+    stdin_open: true
+
+  flask:
+    build: flask/
+    ports:
+      - 8080:8080
+    depends_on:
+      - pg_container
+    env_file:
+      - .vars.env
+    environment:
+      TZ: "Europe/Berlin"
+    volumes:
+      - ./config:/config
+    restart: always
+    stdin_open: true
+
+  pg_container:
+    image: postgres:13.0
+    ports:
+      - 5555:5432
+    env_file:
+      - .vars.env
+    environment:
+      TZ: "Europe/Berlin"
+    restart: always
+    stdin_open: true
