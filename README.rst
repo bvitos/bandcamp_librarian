@@ -1,6 +1,10 @@
 ========================
-bandcamp_dance_librarian
+Bandcamp Dance Librarian
 ========================
+
+
+.. image:: https://img.shields.io/pypi/v/bandcamp_librarian.svg
+        :target: https://pypi.python.org/pypi/bandcamp_librarian
 
 Bandcamp Dance Librarian—detecting stylistic tendencies in the Bandcamp libraries of electronic dance music labels
 
@@ -24,6 +28,10 @@ Features/Pipeline
 The project pipeline is running in Docker containers featuring a Bandcamp scraper, analyser, Postgres database and a Flask-powered user/admin website.
 
 The classifier/clusterer interface is based on a Flask application running on 0:0:0:0/8080.
+
+The classification relies on audio features extracted individually from each label's tracks. The number of clusters can be provided in advance or determined automatically.
+
+Results are provided in a PDF file with links to up to three representative Bandcamp tracks (if possible, from different artists) in each group. The document will also show the tags (folksonomies) added by the artists/labels to the Bandcamp pages.
 
 New Bandcamp labels/libraries can be added by using the admin interface on 0:0:0:0/8080/admin.
 

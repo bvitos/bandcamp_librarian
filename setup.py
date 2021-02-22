@@ -18,11 +18,10 @@ with open('HISTORY.rst') as history_file:
 requirements = ['docker',
         'docker-compose',
         'numpy',
+        'pandas',
         'sqlalchemy',
         'psycopg2-binary',
-        'scikit-learn==0.24.1',]
-
-setup_requirements = ['pytest-runner', ]
+        'scikit-learn',]
 
 setup(
     author="Botond Vitos",
@@ -46,9 +45,8 @@ setup(
     keywords='bandcamp_librarian',
     name='bandcamp_librarian',
     packages=find_packages(include=['bandcamp_librarian','bandcamp_librarian.*']),
-    setup_requires=setup_requirements,
     url='https://github.com/bvitos/bandcamp_librarian',
-    version='0.1.2',
+    version='0.1.3',
     zip_safe=False,
     entry_points={
         'console_scripts': [
