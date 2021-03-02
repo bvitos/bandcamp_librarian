@@ -13,7 +13,7 @@ See Caparrini et al. 2020 (https://doi.org/10.1080/09298215.2020.1761399)
 """
 
 import pandas as pd
-#from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans
 from sklearn.cluster import MiniBatchKMeans
 import numpy as np
 import matplotlib.pyplot as plt
@@ -42,16 +42,11 @@ def clusterise_label(dframe, labelname, n_clusters, randomstring):
 
     """
     clf = pickle.load(open('../config/beatport_classifier.sav', 'rb')) 
-    weights = clf.feature_importances_                              # store feature importances for weighting
-    weights = np.sqrt(weights)
-    sum_weights = np.sum(weights)
-    weights = weights / sum_weights
     
     df = dframe[dframe['bclabel']==labelname].copy(deep=True)
-    features = df.iloc[:,:92].copy(deep=True)                       # store features table
-    scaler = MinMaxScaler()
-    features = scaler.fit_transform(features)
-    features = features * weights                                   # apply weigthing on standardized features taking into account that K-means is based on Euclidean distance metering
+    features_table = df.iloc[:,:92].copy(deep=True)
+    proba_features=pd.DataFrame(data=clf.predict_proba(features_table.to_numpy()),columns=clf.classes_)          # store predicted features df = subgenre probabilities for each track
+    logging.info(proba_features)
 
     configdata=pd.read_csv('../config/config.csv')
     prediction_weight = configdata['prediction_weight'].values[0]   # if the value is 2, the cluster/genre prediction will be aimed towards purer subgenres; if it is 0.5, it will be aimed towards a better amalgam of subgenres
@@ -67,18 +62,17 @@ def clusterise_label(dframe, labelname, n_clusters, randomstring):
         Kmean_version = []                                              # stores the K-means models for each version of cluster numbers during automatic detection
         for cluster_nr in K:
             confidence_max = 0
-            for i in range(10):                                         # run the K-means algorithm multiple times and store the results with the highest cumulative confidence values of the cluster centres provided by the subgenre classificator
-                Kmean_try = MiniBatchKMeans(init="k-means++", n_clusters=cluster_nr) # this way, clusters that are crystallised around the existing taxonomy should be selected
-                Kmean_try.fit(features)
+            for i in range(20):                                         # run the K-means algorithm multiple times and store the results with the highest cumulative confidence values of the cluster centres provided by the subgenre classificator
+                Kmean_try = MiniBatchKMeans(init="k-means++", n_clusters=cluster_nr) # this way, clusters that are crystallised around the existing taxonomy should be selected // MiniBatchKmeans for faster results
+#                Kmean_try = KMeans(init="k-means++", n_clusters=cluster_nr)
+                Kmean_try.fit(proba_features)
                 confidence_sum = 0
                 clustercenters = Kmean_try.cluster_centers_             # store cluster centers
                 for j in range(cluster_nr):
-                    element_ = np.array(clustercenters.tolist()[j]).reshape(1,-1)
-                    element = element_ / weights
-                    element = scaler.inverse_transform(element)         # element = the centroid of each cluster
-                    predictions = clf.predict_proba(element)            # predicts which subgenres the cluster center belongs to
-                    pred_list = list(zip(clf.classes_, predictions[0].round(2)))
+                    element = clustercenters.tolist()[j] # element = the centroid probability values of each cluster
+                    pred_list = list(zip(clf.classes_, element))
                     pred_list.sort(key = lambda x: x[1], reverse=True)  # sort them in order of probability
+                    logging.info(pred_list)
                     confidence_sum += pred_list[0][1] * prediction_weight + pred_list[1][1] + pred_list[2][1] # add together the highest probability values, taking into account the cluster genre prediction weight in order to gain purer subgenres (2x) or a better amalgam of subgenres (0.5x)
                 if confidence_sum > confidence_max:                     # store the model with the highest cumulative confidence value
                     confidence_max = confidence_sum
@@ -103,33 +97,31 @@ def clusterise_label(dframe, labelname, n_clusters, randomstring):
         else:
             attempts = 0                                                # if cluster number was defined by user, only run the loop once
 
-    clusters_pred = Kmean.predict(features)                         # clusters_pred would contain the dataframe column with the predicted cluster indexes
+    clusters_pred = Kmean.predict(proba_features)                   # clusters_pred would contain the dataframe column with the predicted cluster indexes
     cluster_sizes=[]                                                # but we'll resort the cluster indexes according to the number of samples they contain
     for i in range(n_clusters):                                     # so Cluster 0 will be the largest group, Cluster 1 the second largest, etc.
         cluster_sizes.append(clusters_pred.tolist().count(i))       # first store the cluster sizes
     new_cluster_order = np.argsort(cluster_sizes)[::-1].tolist()    # then get the new order of cluster indexes (sorted according to cluster sizes)
     
     clusters_resorted=[]
-    for element in clusters_pred:
-        clusters_resorted.append(new_cluster_order.index(element))  # generate a new list with the resorted indexes
-    df['Cluster']=np.array(clusters_resorted)                       # this will be the Cluster column of the df
+    for clust in clusters_pred:
+        clusters_resorted.append(new_cluster_order.index(clust))  # generate a new list with the resorted indexes
+    df['Cluster']=np.array(clusters_resorted)                       # this will be the Cluster column of the original df
+    proba_features['Cluster']=np.array(clusters_resorted)                 # as well as the proba_features df
     clustertext = []
     clustercenters = Kmean.cluster_centers_  # get the actual cluster centers
     
     for counter in range(n_clusters):
         np.set_printoptions(formatter={'float': lambda x: "{0:0.4f}".format(x)})
-        element_ = np.array(clustercenters.tolist()[new_cluster_order.index(counter)]).reshape(1,-1)
-        element = element_ / weights
-        element = scaler.inverse_transform(element)
-                                                                    # element = the centroid of each cluster, processed in the resorted order
-        predictions = clf.predict_proba(element)                    # predicts which subgenres the centroid belongs to
-        pred_list = list(zip(clf.classes_, predictions[0].round(2)))
+
+        element = clustercenters.tolist()[new_cluster_order.index(counter)] # element = the centroid probability values of each cluster
+        pred_list = list(zip(clf.classes_, element))
         pred_list.sort(key = lambda x: x[1], reverse=True)          # sort it in order of probability, the subgenres with the three highest values will be stored:
-        cluster_df = df[df['Cluster']==counter].copy(deep=True)     # store the cluster in a separate df view for easier reference
-        clustertext.append(f'Cluster {counter}: elements of {pred_list[0][0]} ({pred_list[0][1]}), {pred_list[1][0]} ({pred_list[1][1]}) and {pred_list[2][0]} ({pred_list[2][1]}).')
+        cluster_df = df[df['Cluster']==counter].copy(deep=True)     # store the dataframe cluster in a separate view for easier reference
+        cluster_features = proba_features[proba_features['Cluster']==counter].copy(deep=True)     # store the subgenre probas dataframe cluster in a separate df view for easier reference
+        clustertext.append(f'Cluster {counter}: elements of {pred_list[0][0]} ({round(pred_list[0][1],2)}), {pred_list[1][0]} ({round(pred_list[1][1],2)}) and {pred_list[2][0]} ({round(pred_list[2][1],2)}).')
         clustertext.append(f"This cluster includes {cluster_df.shape[0]} tracks. Examples (clicking on the cover will take you to the track's Bandcamp page):")
-#       distances = cdist(cluster_df.iloc[:,:92], element.reshape(1,-1), 'euclidean', w=weights).flatten().tolist()
-        distances = cdist(scaler.fit_transform(cluster_df.iloc[:,:92]) * weights, element_.reshape(1,-1), 'euclidean').flatten().tolist()   # calculate the distances from centroid (standardized/weighted, corresponding with the K-Means algorithm)
+        distances = cdist(cluster_features.iloc[:,:32], np.array(element).reshape(1,-1), 'euclidean').flatten().tolist() # calculate the distances from subgenre probabilities centroid
 
         asc_index = np.argsort(distances).tolist()                  # get the indexes of sorted distances from centroid
         found_duplicate = True
