@@ -46,7 +46,6 @@ def clusterise_label(dframe, labelname, n_clusters, randomstring):
     df = dframe[dframe['bclabel']==labelname].copy(deep=True)
     features_table = df.iloc[:,:92].copy(deep=True)
     proba_features=pd.DataFrame(data=clf.predict_proba(features_table.to_numpy()),columns=clf.classes_)          # store predicted features df = subgenre probabilities for each track
-    logging.info(proba_features)
 
     configdata=pd.read_csv('../config/config.csv')
     prediction_weight = configdata['prediction_weight'].values[0]   # if the value is 2, the cluster/genre prediction will be aimed towards purer subgenres; if it is 0.5, it will be aimed towards a better amalgam of subgenres
@@ -72,7 +71,6 @@ def clusterise_label(dframe, labelname, n_clusters, randomstring):
                     element = clustercenters.tolist()[j] # element = the centroid probability values of each cluster
                     pred_list = list(zip(clf.classes_, element))
                     pred_list.sort(key = lambda x: x[1], reverse=True)  # sort them in order of probability
-                    logging.info(pred_list)
                     confidence_sum += pred_list[0][1] * prediction_weight + pred_list[1][1] + pred_list[2][1] # add together the highest probability values, taking into account the cluster genre prediction weight in order to gain purer subgenres (2x) or a better amalgam of subgenres (0.5x)
                 if confidence_sum > confidence_max:                     # store the model with the highest cumulative confidence value
                     confidence_max = confidence_sum

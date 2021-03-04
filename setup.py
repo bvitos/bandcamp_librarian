@@ -3,10 +3,6 @@
 
 """The setup script."""
 
-
-from distutils.command.sdist import sdist as sdist_orig
-from distutils.errors import DistutilsExecError
-
 from setuptools import setup, find_packages
 
 with open('README.rst') as readme_file:
@@ -46,7 +42,7 @@ setup(
     name='bandcamp_librarian',
     packages=find_packages(include=['bandcamp_librarian','bandcamp_librarian.*']),
     url='https://github.com/bvitos/bandcamp_librarian',
-    version='0.1.3',
+    version='0.1.4',
     zip_safe=False,
     entry_points={
         'console_scripts': [

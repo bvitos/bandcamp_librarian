@@ -2,6 +2,12 @@
 History
 =======
 
+0.1.4
+------------------
+
+* Clustering algorithm and readme update.
+
+
 0.1.3
 ------------------
 
