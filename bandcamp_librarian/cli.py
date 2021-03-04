@@ -67,9 +67,11 @@ def main():
                 if os.path.exists('.vars.env'):
                     print('If requested, please enter your root password for starting the Bandcamp Dance Librarian Docker containers in the background.')
                     try:
+                        output = subprocess.check_output(['bash','-c', 'sudo docker-compose kill'])
                         output = subprocess.check_output(['bash','-c', 'sudo docker-compose up --detach --force-recreate'])
                     except:
-                        output = subprocess.check_output(['bash','-c', 'docker-compose up --detach --force-recreate'])     # for AWS deployment
+                        output = subprocess.check_output(['bash','-c', 'docker-compose kill'])
+                        output = subprocess.check_output(['bash','-c', 'docker-compose up --detach --force-recreate'])     # for AWS etc. deployment
                     print('The web interface should now be running on http://0.0.0.0:8080/. For stopping the docker service from the command line, please enter: bandcamplibrarian -off')
                 else:
                     print('Could not find file containing environmental variables. Initializing and building Docker containers...')

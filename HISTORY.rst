@@ -5,7 +5,7 @@ History
 0.1.4
 ------------------
 
-* Clustering algorithm and readme update.
+* Clustering algorithm, console script and readme update.
 
 
 0.1.3
