@@ -1,2 +1,2 @@
-scraping,bclabel,sizelimit,prediction_weight
-0,_none_,20000000,1
+scraping,bclabel,sizelimit,prediction_weight,location_tag_blacklist
+0,_none_,20000000,1,Electro|Desolation|Perc|Wonterghem|Sigha|Summertrax|Billin|Christian|Rico|Kingdom|Los|Anjunabeats|Del Mar
