@@ -13,7 +13,7 @@ if os.path.exists('tracks.csv'):
     print("Please note that you need a running instance of the docker container for importing the tracks and labels tables to Postgres")
     pguser = input("User name: ")
     pgpassword = input("Password: ")
-    pg = create_engine(f'postgres://{pguser}:{pgpassword}@0.0.0.0:5555/postgres') # pg connect
+    pg = create_engine(f'postgresql://{pguser}:{pgpassword}@0.0.0.0:5555/postgres') # pg connect
     tracksimport = pd.read_csv('tracks.csv', delimiter = ',', decimal = '.')
     tracksimport.iloc[:,:91] = tracksimport.iloc[:,:91].apply(pd.to_numeric, errors='coerce', downcast='float')
     tracksimport[['trackid', 'year', 'labelid']] = tracksimport[['trackid', 'year', 'labelid']].apply(pd.to_numeric, errors='coerce', downcast='integer')

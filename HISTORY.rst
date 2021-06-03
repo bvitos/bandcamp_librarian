@@ -2,6 +2,16 @@
 History
 =======
 
+0.2.0.1
+------------------
+
+* Bugfix.
+
+0.2
+------------------
+
+* Various updates under the hood, frequencies of localization tags added to final report.
+
 0.1.4
 ------------------
 

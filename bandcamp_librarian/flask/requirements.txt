@@ -13,3 +13,4 @@ requests==2.25.1
 waitress==1.4.4
 kneed==0.7.0
 spacy==3.0.3
+pillow==8.0.1

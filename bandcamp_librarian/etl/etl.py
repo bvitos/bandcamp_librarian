@@ -14,12 +14,8 @@ from extract_features_wav import extract_features_wav_file
 import pandas as pd
 import logging
 import os
-import mutagen
 import gc
 import shutil
-from PIL import Image
-import base64
-import numpy as np
 
 
 def gettags(filepath, track_id):
@@ -28,25 +24,15 @@ def gettags(filepath, track_id):
     
     Returns: extracted tags and cover image link
     """
-    metadata = mutagen.File(filepath)
-    try:
-        imgdata = metadata['APIC:Cover'].data
-        coverimg = f'../config/labels/currently_scraping/{str(track_id)}.jpg'
-        f = open(coverimg, 'w+b')
-        f.write(imgdata)
-        f.close()
-        img = Image.open(coverimg)
-        img = img.resize((300,300), Image.ANTIALIAS)
-        img.save(coverimg)
-        with open(coverimg, 'rb') as imageFile:
-            imgstr = base64.b64encode(imageFile.read())
-            coverimg=imgstr.decode()
-    except:
-        coverimg = '../config/_nocover_.jpg'
     try:        
         track = EasyID3(filepath)
     except:
         track = []
+    logging.critical(track)
+    if 'website' in track:
+        coverimg = track['website']
+    else:
+        coverimg = ['']
     if 'artist' in track:
         artist = track['artist']
     else:
@@ -75,11 +61,12 @@ def gettags(filepath, track_id):
     return coverimg, artist, track_title, album, year, genre, url
 
 
+
 time.sleep(5)
 
 pguser = os.environ.get('POSTGRES_USER')                                           # setup postgres credentials
 pgpassword = os.environ.get('POSTGRES_PASSWORD')
-pg = create_engine(f'postgres://{pguser}:{pgpassword}@pg_container:5432/postgres') # pg connect
+pg = create_engine(f'postgresql://{pguser}:{pgpassword}@pg_container:5432/postgres') # pg connect
 
 logging.basicConfig(level=logging.INFO)
 

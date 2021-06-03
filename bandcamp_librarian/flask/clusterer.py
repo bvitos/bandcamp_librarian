@@ -22,15 +22,15 @@ import pickle
 import os
 import gc
 import logging
-import base64
 import spacy
+import requests
 
-#from sklearn.preprocessing import MinMaxScaler
 #from sklearn.cluster import KMeans
 from sklearn.cluster import MiniBatchKMeans
 from scipy.spatial.distance import cdist
 from kneed import KneeLocator
 
+from PIL import Image
 from fpdf import FPDF
 from sqlalchemy import create_engine
 from random import randrange
@@ -68,7 +68,7 @@ def clusterise_label(df, labelname, n_clusters, prediction_weight, randomstring)
                 confidence_sum = 0
                 clustercenters = Kmean_try.cluster_centers_             # store cluster centers
                 for j in range(cluster_nr):
-                    element = clustercenters.tolist()[j] # element = the centroid probability values of each cluster
+                    element = clustercenters.tolist()[j]                # element = the centroid probability values of each cluster
                     pred_list = list(zip(clf.classes_, element))
                     pred_list.sort(key = lambda x: x[1], reverse=True)  # sort them in order of probability
                     confidence_sum += pred_list[0][1] * prediction_weight + pred_list[1][1] + pred_list[2][1] # add together the highest probability values, taking into account the cluster genre prediction weight in order to gain purer subgenres (2x) or a better amalgam of subgenres (0.5x)
@@ -95,45 +95,42 @@ def clusterise_label(df, labelname, n_clusters, prediction_weight, randomstring)
         else:
             attempts = 0                                                # if cluster number was defined by user, only run the loop once
 
-    clusters_pred = Kmean.predict(proba_features)                   # clusters_pred would contain the dataframe column with the predicted cluster indexes
-    cluster_sizes=[]                                                # but we'll resort the cluster indexes according to the number of samples they contain
-    for i in range(n_clusters):                                     # so Cluster 0 will be the largest group, Cluster 1 the second largest, etc.
-        cluster_sizes.append(clusters_pred.tolist().count(i))       # first store the cluster sizes
-    new_cluster_order = np.argsort(cluster_sizes)[::-1].tolist()    # then get the new order of cluster indexes (sorted according to cluster sizes)
-    
-    clusters_resorted=[]
-    for clust in clusters_pred:
-        clusters_resorted.append(new_cluster_order.index(clust))  # generate a new list with the resorted indexes
-    df['Cluster']=np.array(clusters_resorted)                       # this will be the Cluster column of the original df
-    proba_features['Cluster']=np.array(clusters_resorted)                 # as well as the proba_features df
+    clusters_pred = Kmean.predict(proba_features)                       # clusters_pred will be the Cluster column of the main df
+    df['Cluster']=np.array(clusters_pred)
+    proba_features['Cluster']=np.array(clusters_pred)                   # as well as the proba_features df
     clustertext = []
-    clustercenters = Kmean.cluster_centers_  # get the actual cluster centers
+    clustercenters = Kmean.cluster_centers_                             # get the  cluster centers
     
     for ccounter in range(n_clusters):
         np.set_printoptions(formatter={'float': lambda x: "{0:0.4f}".format(x)})
 
-        element = clustercenters.tolist()[new_cluster_order.index(ccounter)] # element = the centroid probability values of each cluster
+        element = clustercenters.tolist()[ccounter]                     # element = the centroid probability values of each cluster
         pred_list = list(zip(clf.classes_, element))
-        pred_list.sort(key = lambda x: x[1], reverse=True)          # sort it in order of probability, the subgenres with the three highest values will be stored:
-        cluster_df = df[df['Cluster']==ccounter].copy(deep=True)     # store the dataframe cluster in a separate view for easier reference
+        pred_list.sort(key = lambda x: x[1], reverse=True)              # sort it in order of probability, the subgenres with the three highest values will be stored:
+        cluster_df = df[df['Cluster']==ccounter].copy(deep=True)        # store the dataframe cluster in a separate view for easier reference
         cluster_features = proba_features[proba_features['Cluster']==ccounter].copy(deep=True)     # store the subgenre probas dataframe cluster in a separate df view for easier reference
         clustertext.append(f'Cluster {ccounter}- elements of {pred_list[0][0]} ({round(pred_list[0][1],2)}), {pred_list[1][0]} ({round(pred_list[1][1],2)}) and {pred_list[2][0]} ({round(pred_list[2][1],2)}).')
         locations = []
-        for row in cluster_df['location']:
+        for row in cluster_df['GPE']:
             locations = locations + row
+        nationalities = []
+        for row in cluster_df['NORP']:
+            nationalities = nationalities + row
         locationcount = Counter(locations)
-        loctags = 'Location tags'
+        nationalitiescount = Counter(nationalities)
+        loctags = 'Locale tags'
         for locelement in sorted(locationcount, key=locationcount.get, reverse=True):
             loctags = loctags + '- ' + locelement + ' (' + str(locationcount[locelement]) + ') '
-
+        for natelement in sorted(nationalitiescount, key=nationalitiescount.get, reverse=True):
+            loctags = loctags + '- ' + natelement + ' (' + str(nationalitiescount[natelement]) + ') '
         clustertext.append(loctags)
         clustertext.append(f"The cluster includes {cluster_df.shape[0]} tracks. Notable track examples (clicking on the cover will take you to the Bandcamp release page):")
 
         distances = cdist(cluster_features.iloc[:,:32], np.array(element).reshape(1,-1), 'euclidean').flatten().tolist() # calculate the distances from subgenre probabilities centroid
 
-        asc_index = np.argsort(distances).tolist()                  # get the indexes of sorted distances from centroid
+        asc_index = np.argsort(distances).tolist()                      # get the indexes of sorted distances from centroid
         found_duplicate = True
-        while (len(asc_index) > 3) & (found_duplicate):             # try to select three tracks from different artists
+        while (len(asc_index) > 3) & (found_duplicate):                 # try to select three tracks from different artists
             found_duplicate = False
             for j in range(3):
                 artist_list = [cluster_df.iloc[asc_index[0],93], cluster_df.iloc[asc_index[1],93], cluster_df.iloc[asc_index[2],93]]
@@ -144,19 +141,25 @@ def clusterise_label(df, labelname, n_clusters, prediction_weight, randomstring)
             if (found_duplicate):
                 asc_index.remove(duplicate)
         j = 0
-        while j < 3 and len(asc_index) > j:                         # stores the three most fitting (closest to their centroid) track examples (provided that they exist) with links and release covers
+        while j < 3 and len(asc_index) > j:                             # stores the three most fitting (closest to their centroid) track examples (provided that they exist) with links and release covers
             clustertext.append(f'Link: {cluster_df.iloc[asc_index[j],100]}')
             clustertext.append(cluster_df.iloc[asc_index[j],101])
             imgstr = cluster_df.iloc[asc_index[j],103]
-            if imgstr != '../config/_nocover_.jpg':
-                bas64bytes = base64.b64decode(imgstr.encode())              
-                filename = f'../config/labels/{randomstring}{cluster_df.iloc[asc_index[j],92]}{str(ccounter * 3 + j)}.jpg'
-                fh = open(filename, 'wb')
-                fh.write(bas64bytes)
-                fh.close()
-                clustertext.append(filename)
+            if len(imgstr) > 0:
+                try:                                                    # try to download cover image
+                    image_data = requests.get(imgstr).content
+                    filename = f'../config/labels/{randomstring}{cluster_df.iloc[asc_index[j],92]}{str(ccounter * 3 + j)}.jpg'
+                    f = open(filename, 'w+b')
+                    f.write(image_data)
+                    f.close()
+                    img = Image.open(filename)
+                    img = img.resize((300,300), Image.ANTIALIAS)
+                    img.save(filename)
+                    clustertext.append(filename)
+                except:                                                 # no cover image available
+                    clustertext.append('../config/_nocover_.jpg')
             else:
-                clustertext.append(imgstr)
+                clustertext.append('../config/_nocover_.jpg')
             clustertext.append(cluster_df.iloc[asc_index[j],97])
             j += 1
         clustertext.append("Note: the track analysis and consecutive K-means clustering is based on Beatport's taxonomy composed of 32 subgenres as of Jan 2021.")
@@ -175,28 +178,29 @@ def clusterise_label(df, labelname, n_clusters, prediction_weight, randomstring)
 
 
 
-def extractlocation(tags, blacklist=list):
+def extract_locales(tags, blacklist=list, GPE_whitelist=list, locale_type=str):
     """
-    Extracts location information from a string containing tags
+    Extracts locale information from a string containing tags separated by '|' while disregarding blacklisted tags
+    spaCy entity types: GPE (Geopolitical entity); NORP (Nationalities or religious or political groups)
 
     Returns:
         list of locations
 
     """
-    if tags in tags_cache:                          # check if tag was already processed; duplicates are common
-        return tags_cache[tags]
+    if locale_type+tags in tags_cache:                  # check if the tag/entity pair was already processed; duplicates are common
+        return tags_cache[locale_type+tags]
     else:
         results = []
-        for ent in nlp(tags).ents:                  # check for location info in tag string:
-            if ent.label_ in ["NORP", "GPE"] and ent.text not in results and ent.text not in blacklist:
-                results.append(ent.text)
-        tags_title = str(tags).title()              # check again for individual words in title case:
-        for tag in tags_title.split():
-            for ent in nlp(tag).ents:
-                if ent.label_ in ["NORP", "GPE"] and ent.text not in results and ent.text not in blacklist:
+        for tag in tags.split('|'):
+            if locale_type == 'GPE' and tag in GPE_whitelist and tag not in results: # add whitelisted location tags instantly
+                results.append(tag)
+            for ent in nlp(tag.title()).ents:           # check for location info in individual tag (in title case):
+                if ent.label_ in [locale_type] and ent.text not in results and ent.text not in blacklist:
                     results.append(ent.text)
-        tags_cache[tags] = results                  # store processed tag string in cache dictionary
+        tags_cache[locale_type+tags] = results          # store processed tag/entity string in cache dictionary
         return(results)
+
+
 
 
 
@@ -209,30 +213,31 @@ def process_label(labelname, clusternum):
     Instead, it generates a PDF file containing the classification results (clusters, subgenres, Bandcamp track examples incl. covers, tags/folksonomies and links)
 
     """
-    labels = [labelname]                                                # the script currently processes one label/library only, but with an easy modification of the code multiple labels can be processed at the same time
-    pguser = os.environ.get('POSTGRES_USER')                            # setup postgres connection
+    labels = [labelname]                                                            # the script currently processes one label/library only, but with an easy modification of the code multiple labels can be processed at the same time
+    pguser = os.environ.get('POSTGRES_USER')                                        # setup postgres connection
     pgpassword = os.environ.get('POSTGRES_PASSWORD')
-    pg = create_engine(f'postgres://{pguser}:{pgpassword}@pg_container:5432/postgres')
+    pg = create_engine(f'postgresql://{pguser}:{pgpassword}@pg_container:5432/postgres')
     cltext = []
     if pg.dialect.has_table(pg, 'tracks'):
+        randomstring = str(randrange(100000000,999999999))
         df_full = pd.read_sql_table('tracks', pg)
         df = df_full[df_full['bclabel']==labelname].copy(deep=True)
         configdata=pd.read_csv('../config/config.csv')
-        loc_tag_blacklist = configdata['location_tag_blacklist'].values[0].split('|')   # these tags are incorrectly detected as locations by the NLP algorithm and must be blacklisted
-        prediction_weight = configdata['prediction_weight'].values[0]           # if the value is 2, the cluster/genre prediction will be aimed towards purer subgenres; if it is 0.5, it will be aimed towards a better amalgam of subgenres
+        loc_tag_blacklist = configdata['loc_tag_blacklist'].values[0].split('|')   # tags incorrectly detected as locales by the NLP algorithm must be blacklisted
+        GPE_tag_whitelist = configdata['loc_tag_whitelist'].values[0].split('|')   # locale tags not detected by the NLP algorithm must be whitelisted
+        prediction_weight = configdata['prediction_weight'].values[0]              # if the value is 2, the cluster/genre prediction will be aimed towards purer subgenres; if it is 0.5, it will be aimed towards a better amalgam of subgenres
         global nlp
-        nlp = spacy.load('en_core_web_sm')
+        nlp = spacy.load('en_core_web_md')
         global tags_cache
         tags_cache = {}
-        df['location'] = np.nan
-        df['location'] = df['tags'].apply(extractlocation, args=[loc_tag_blacklist])    # extract location info into df column
-        randomstring = str(randrange(100000000,999999999))
+        df['GPE'] = df['tags'].apply(extract_locales, args=[loc_tag_blacklist, GPE_tag_whitelist, 'GPE'])       # extract location info into df column
+        df['NORP'] = df['tags'].apply(extract_locales, args=[loc_tag_blacklist,GPE_tag_whitelist, 'NORP'])      # extract location info into df column
         cltext.append(clusterise_label(df, labelname, int(clusternum), prediction_weight, randomstring))
     else:
         cltext.append(['Error: Tracks table not found in the database.'])
     pg.dispose()        
     pdf = FPDF()
-    for i in range(len(labels)):                                        # generate PDF report
+    for i in range(len(labels)):                                                    # generate PDF report
         pdf.add_page()
         pdf.set_auto_page_break(0, margin = 0.5)
         labeltext = cltext[i]
@@ -246,7 +251,7 @@ def process_label(labelname, clusternum):
             if text2[0:5] == 'Clust':
                 if j > 0:
                     pdf.add_page()
-                pdf.image(f'../config/labels/{randomstring}{labels[i]}.png', x=20, y=0, w=160)        
+                pdf.image(f'../config/labels/{randomstring}{labels[i]}.png', x=30, y=0, w=140)        
                 pdf.set_y(110)
                 pdf.set_font('DejaVu', size=9)
                 pdf.cell(200, 9, txt=text2, ln=1, align="C")
@@ -256,7 +261,8 @@ def process_label(labelname, clusternum):
             elif text2[0:5] == 'Link:':
                 top = pdf.y
                 pdf.image(labeltext[j+2], x=5, y=pdf.y, w=45, h=45, link = labeltext[j+1])
-                os.remove(labeltext[j+2])
+                if labeltext[j+2] != '../config/_nocover_.jpg':
+                    os.remove(labeltext[j+2])
                 pdf.y = top
                 pdf.x = 50
                 pdf.set_font("DejaVu", size=7)

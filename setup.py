@@ -11,13 +11,11 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['docker',
-        'docker-compose',
+requirements = [
         'numpy',
         'pandas',
         'sqlalchemy',
-        'psycopg2-binary',
-        'scikit-learn',]
+        'psycopg2-binary',]
 
 setup(
     author="Botond Vitos",
@@ -33,7 +31,7 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
-    description="This project detects stylistic tendencies in the Bandcamp libraries of electronic dance music labels by defining clusters based on Beatport's subgenre categories as of Jan 2021. To deploy the web interface on 0.0.0.0:8080/, enter bandcamplibrarian -on from the command line after installation.",
+    description="This project detects stylistic tendencies in the Bandcamp libraries of electronic dance music labels by defining clusters based on Beatport's subgenre categories as of Jan 2021. To deploy the web interface on 0.0.0.0:8000/, enter bandcamplibrarian -on from the command line after installation. Note: the deployment requires Docker Compose pre-installed on your system.",
     install_requires=requirements,
     license="MIT license",
     long_description=readme + '\n\n' + history,
@@ -42,7 +40,7 @@ setup(
     name='bandcamp_librarian',
     packages=find_packages(include=['bandcamp_librarian','bandcamp_librarian.*']),
     url='https://github.com/bvitos/bandcamp_librarian',
-    version='0.1.4',
+    version='0.2.0.1',
     zip_safe=False,
     entry_points={
         'console_scripts': [

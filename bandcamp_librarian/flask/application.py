@@ -26,11 +26,11 @@ def index():                                                            # main p
     global labels
     pguser = os.environ.get('POSTGRES_USER')
     pgpassword = os.environ.get('POSTGRES_PASSWORD')
-    pg = create_engine(f'postgres://{pguser}:{pgpassword}@pg_container:5432/postgres')  # pg connect    
+    pg = create_engine(f'postgresql://{pguser}:{pgpassword}@pg_container:5432/postgres')  # pg connect    
     if pg.dialect.has_table(pg, 'labels'):
         labeltable = pd.read_sql_table('labels', pg)                    # check available labels
         pg.dispose()
-        labels = labeltable[(labeltable['numtracks'] > 99) & (labeltable['ready'])]['bandcampname'].tolist()
+        labels = labeltable[(labeltable['numtracks'] > 49) & (labeltable['ready'])]['bandcampname'].tolist()
         labels.sort()
         return render_template("index.html", labels = labels)           # render index.html with selectable list of labels
     else:
@@ -118,7 +118,7 @@ def admin():
 def gettracks():
     pguser = os.environ.get('POSTGRES_USER')                            # setup postgres connection
     pgpassword = os.environ.get('POSTGRES_PASSWORD')
-    pg = create_engine(f'postgres://{pguser}:{pgpassword}@pg_container:5432/postgres')
+    pg = create_engine(f'postgresql://{pguser}:{pgpassword}@pg_container:5432/postgres')
     if pg.dialect.has_table(pg, 'tracks'):
         tracks = pd.read_sql_table('tracks', pg, columns=['trackid','artist','year','track','album','tags','labelid','labelname','url','bclabel'])
         pg.dispose()
@@ -133,7 +133,7 @@ def gettracks():
 def getlabels():
     pguser = os.environ.get('POSTGRES_USER')
     pgpassword = os.environ.get('POSTGRES_PASSWORD')
-    pg = create_engine(f'postgres://{pguser}:{pgpassword}@pg_container:5432/postgres')  # pg connect    
+    pg = create_engine(f'postgresql://{pguser}:{pgpassword}@pg_container:5432/postgres')  # pg connect    
     if pg.dialect.has_table(pg, 'labels'):
         labeltable = pd.read_sql_table('labels', pg)
         pg.dispose()
@@ -148,4 +148,4 @@ if __name__ == '__main__':
     processing = False
     logging.basicConfig(level=logging.INFO)    
     app.config['SECRET_KEY'] = os.environ.get('FLASK_KEY')
-    serve(app, host="0.0.0.0", threads=10, port=8080)
+    serve(app, host="0.0.0.0", threads=10, port=8000)

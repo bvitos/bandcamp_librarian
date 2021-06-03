@@ -21,12 +21,12 @@ def import_tracks(postgres_pwd):
         time.sleep(2)
         connection_error = False
         try:
-            pg = create_engine(f'postgres://postgres:{postgres_pwd}@0.0.0.0:5555/postgres')     # try to connect to pg
+            pg = create_engine(f'postgresql://postgres:{postgres_pwd}@0.0.0.0:5555/postgres')     # try to connect to pg
         except:
             print('Connection failed. Trying again in 10 seconds')
             time.sleep(10)
             try:
-                pg = create_engine(f'postgres://postgres:{postgres_pwd}@0.0.0.0:5555/postgres') # try to connect to pg
+                pg = create_engine(f'postgresql://postgres:{postgres_pwd}@0.0.0.0:5555/postgres') # try to connect to pg
             except:
                 connection_error = True
         if connection_error:
@@ -72,8 +72,9 @@ def main():
                     except:
                         output = subprocess.check_output(['bash','-c', 'docker-compose kill'])
                         output = subprocess.check_output(['bash','-c', 'docker-compose up --detach --force-recreate'])     # for AWS etc. deployment
-                    print('The web interface should now be running on http://0.0.0.0:8080/. For stopping the docker service from the command line, please enter: bandcamplibrarian -off')
+                    print('The web interface should now be running on http://0.0.0.0:8000/. For stopping the docker service from the command line, please enter: bandcamplibrarian -off')
                 else:
+                    print('Please note that Docker Compose needs to be installed on this machine before deployment!')
                     print('Could not find file containing environmental variables. Initializing and building Docker containers...')
                     postgres_pwd = input('Please enter a password for the Postgres database: ')
                     f = open('.vars.env', 'w')
@@ -96,10 +97,10 @@ def main():
                         output = subprocess.check_output(['bash','-c', 'docker-compose rm -fv pg_container'])
                         output = subprocess.check_output(['bash','-c', 'docker-compose up --detach --build --force-recreate'])     # for AWS deployment
                     if 'Successfully built' in output.decode("utf-8"):
-                        print('The web interface should now be running on http://0.0.0.0:8080/.')
+                        print('The web interface should now be running on http://0.0.0.0:8000/.')
                         choice = 'x'
                         while choice not in ['y','Y','n','N']:
-                            choice = input('Would you like to add the samples database including 5 labels and 2197 tracks? (y/n) ')
+                            choice = input('Would you like to add the samples database including 10 labels and 6486 tracks? (y/n) ')
                         if choice in ['y','Y']:
                             import_tracks(postgres_pwd)
                         print('Please refer to the documentation/readme for further app settings (accessible via config/config.csv). For stopping the docker service from the command line, use: bandcamplibrarian -off')

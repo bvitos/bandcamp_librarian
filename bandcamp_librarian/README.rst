@@ -8,13 +8,13 @@ Bandcamp Dance Librarian
 
 Bandcamp Dance Librarian—detecting stylistic tendencies in the Bandcamp libraries of electronic dance music labels
 
-This project uses the subgenre taxonomy of Beatport (as of Jan 2021) in an attempt to detect stylistic tendencies or repertoires within the Bandcamp libraries of (mainly) grasroots labels. To achieve this, an automatic subgenre classifier is trained on Beatport's Top-100 lists, which identifies the possible subgenres a track may belong to based on the audio analysis of its musical features. The classifier is then applied to detect the styles a Bandcamp library may belong to. The tracks pertaining to the whole library are first individually analysed, then distributed into groups or clusters based on their possible subgenre affiliations. The project output also show the tags (folksonomies) added by the artists/labels to the Bandcamp pages. It is therefore possible to compare the industry taxonomy of Beatport with the artist folksonomies, as long as such tags are provided on Bandcamp.
+This project uses the subgenre taxonomy of Beatport (as of Jan 2021) in an attempt to detect stylistic tendencies or repertoires within the Bandcamp libraries of (mainly) grasroots labels. To achieve this, an automatic subgenre classifier is trained on Beatport's Top-100 lists, which identifies the possible subgenres a track may belong to based on the audio analysis of its musical features. The classifier is then applied to detect the styles a Bandcamp library may belong to. The tracks pertaining to the whole library are first individually analysed, then distributed into groups or clusters based on their possible subgenre affiliations. The project output also shows the tags (folksonomies) added by the artists/labels to the Bandcamp pages (pertaining to the most representative tracks). It is therefore possible to compare the industry taxonomy of Beatport with the artist folksonomies, as long as such tags are provided on Bandcamp. The frequencies of localization tags detected in each cluster are also displayed in the output.
 
-A working demo of the Librarian is available under http://18.198.194.11:8080 (use http://18.198.194.11:8080/admin for the admin interface).
+A working demo of the Librarian is available under http://bit.ly/bandcamplibrarian.
 
-You can install the project from the command line by entering "pip install bandcamp-librarian".
+You can install the project from the command line by entering "pip install bandcamp-librarian". Note: prerequisite for the deployment is the installation of Docker Compose on your system (https://docs.docker.com/compose/install/).
 
-After installation, enter "bandcamplibrarian -on" from the command line to initialize the docker service and access the web interface running on 0:0:0:0/8080. To switch off the service, use "bandcamplibrarian -off".
+After installation, enter "bandcamplibrarian -on" from the command line to initialize the docker service and access the web interface running on 0:0:0:0/8000. To switch off the service, use "bandcamplibrarian -off".
 
 Alternatively, rename the .example_vars.env file to .vars.env, change POSTGRES_PASSWORD and FLASK_KEY in the file to your preferred values, and run Docker Compose from the project folder (e.g, sudo docker-compose up --detach --build).
 
@@ -26,13 +26,13 @@ Features/Pipeline
 
 The project pipeline is running in Docker containers featuring a Bandcamp scraper, analyser, Postgres database and a Flask-powered user/admin website.
 
-The classifier/clusterer interface is based on a Flask application running on 0:0:0:0/8080.
+The classifier/clusterer interface is based on a Flask application running on 0:0:0:0/8000.
 
 The classification relies on audio features extracted individually from each label's tracks. The number of clusters can be provided in advance or determined automatically.
 
-Results are provided in a PDF file with links to up to three representative Bandcamp tracks (if possible, from different artists) in each group. The document will also show the tags (folksonomies) added by the artists/labels to the Bandcamp pages.
+Results are provided in a PDF file with links to up to three representative Bandcamp tracks (if possible, from different artists) in each group. The document will also show the tags (folksonomies) added by the artists/labels to the Bandcamp pages and the frequencies of localization tags (geographical locations and ethnicities) detected in each cluster.
 
-New Bandcamp labels/libraries can be added by using the admin interface on 0:0:0:0/8080/admin.
+New Bandcamp labels/libraries can be added by using the admin interface on 0:0:0:0/8000/admin.
 
 The track audio features and other attributes (incl. low-res release cover data) are stored in the Postgres database.
 
@@ -43,6 +43,8 @@ It is also possible to manually import the tracks and labels database by running
 The config.csv file in the /config folder defines the pipeline scraping/analysis settings as well as the size limit for the scraped files (by default 20MB, approx. 20 mins long MP3 track).
 
 To start scraping manually (i.e., not through the web interface), you can edit the config.csv: set "scraping" to 0 and "bclabel" to the bandcamp label name found in the Bandcamp url (for example, "polegroup" for "https://polegroup.bandcamp.com/"). To stop scraping manually, set "scraping" to 0 and "bclabel" to "_none_" in config.csv.
+
+The localization tags in each cluster are detected automatically. For more precise detection, location tags can be blacklisted and whitelisted in the config.csv file.
 
 An additional parameter in config.csv: by setting "prediction_weight" to 2, the cluster/genre prediction will be aimed towards purer subgenres; by setting it to 0.5, it will be aimed towards a better amalgam of subgenres.
 
@@ -68,7 +70,7 @@ Considering the number of subgenres, these results are in the range of the perfo
 
 The features for the clustering algorithm are the 32 class (subgenre) probabilities provided by the classifier for each track. The K-means clustering is run multiple (20) times; during each iteration, the three highest probability values from the cluster centroids (the three subgenres that the cluster centers are most probably affiliated with) are added together with an optional weight of 0.5 or 2 applied to the highest value. Finally, the model with the highest cumulative sum of probabilities across all clusters is stored. Although this optimisation process is somewhat arbitrary, it is meant to ensure that the cluster centroids are crystallised around the classifier's subgenre categories (i.e., the confidence of prediction at the center is relatively high); the weight is applied to decrease or increase the importance of the highest value in selecting the final model, thus resulting in purer subgenre clusters or a better amalgam of subgenres. If the user selects automatic cluster number recommendation, this whole process is repeated for cluster numbers ranging from 1 to 6, and finally the cluster number located at the elbow of the inertia curve is selected. If no elbow can be defined in 5 consecutive attempts, the number of clusters is set to 4.
 
-A PDF report is generated with the three highest subgenre probability values pertaining to the centroids and three track examples (i.e. tracks closest to their centroids based on Euclidean distance metering) in each cluster, with links to their Bandcamp pages and their associated Bandcamp folksonomies.
+A PDF report is generated with the three highest subgenre probability values pertaining to the centroids and three track examples (i.e. tracks closest to their centroids based on Euclidean distance metering) in each cluster, with links to their Bandcamp pages and their associated Bandcamp folksonomies. The frequencies of localization tags (geographical locations and ethnicities) in each cluster are detected by means of the spaCy NLP library.
 
 References
 

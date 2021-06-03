@@ -230,7 +230,7 @@ def get_bandcamp_metadata(url):
     # make sure we treat integers correctly with join()
     # according to http://stackoverflow.com/a/7323861
     # (very unlikely, but better safe than sorry!)
-    output['genre'] = ' '.join(s for s in tags)
+    output['genre'] = '|'.join(s for s in tags)
 
     try:
         artUrl = request.text.split("\"tralbumArt\">")[1].split("\">")[0].split("href=\"")[1]
@@ -312,41 +312,11 @@ def tag_file(filename, artist, title, year=None, genre=None, artwork_url=None, a
             audio["genre"] = genre
         if url:
             audio["website"] = url
-        if comment:
-            audio["comment"] = comment
+        if artwork_url:
+            artwork_url = artwork_url.replace('https', 'http')
+            audio["website"] = artwork_url
         audio.save()
 
-        if artwork_url:
-
-            artwork_url = artwork_url.replace('https', 'http')
-
-            mime = 'image/jpeg'
-            if '.jpg' in artwork_url:
-                mime = 'image/jpeg'
-            if '.png' in artwork_url:
-                mime = 'image/png'
-
-            if '-large' in artwork_url:
-                new_artwork_url = artwork_url.replace('-large', '-t500x500')
-                try:
-                    image_data = requests.get(new_artwork_url).content
-                except Exception as e:
-                    # No very large image available.
-                    image_data = requests.get(artwork_url).content
-            else:
-                image_data = requests.get(artwork_url).content
-
-            audio = MP3(filename, ID3=OldID3)
-            audio.tags.add(
-                APIC(
-                    encoding=3,  # 3 is for utf-8
-                    mime=mime,
-                    type=3,  # 3 is for the cover image
-                    desc='Cover',
-                    data=image_data
-                )
-            )
-            audio.save()
 
         # because there is software that doesn't seem to use WOAR we save url tag again as WXXX
         if url:
@@ -414,7 +384,7 @@ def get_label_tracklist(bandcampname,fullname):
     alreadyscraped = []
     pguser = os.environ.get('POSTGRES_USER')
     pgpassword = os.environ.get('POSTGRES_PASSWORD')
-    pg = create_engine(f'postgres://{pguser}:{pgpassword}@pg_container:5432/postgres')  # pg connect    
+    pg = create_engine(f'postgresql://{pguser}:{pgpassword}@pg_container:5432/postgres')  # pg connect    
     if pg.dialect.has_table(pg, 'labels'):
         
         labeltable = pd.read_sql_table('labels', pg)
@@ -445,7 +415,7 @@ while True:
     time.sleep(5)
     pguser = os.environ.get('POSTGRES_USER')
     pgpassword = os.environ.get('POSTGRES_PASSWORD')
-    pg = create_engine(f'postgres://{pguser}:{pgpassword}@pg_container:5432/postgres')  # pg connect                
+    pg = create_engine(f'postgresql://{pguser}:{pgpassword}@pg_container:5432/postgres')  # pg connect                
     logging.info('Checking if a new label has been assigned for scraping...')
     configdata=pd.read_csv('../config/config.csv')                          # import config settings
     bc_label = configdata['bclabel'].values[0]
