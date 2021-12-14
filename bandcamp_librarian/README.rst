@@ -10,7 +10,7 @@ Bandcamp Dance Librarian—detecting stylistic tendencies in the Bandcamp librar
 
 This project uses the subgenre taxonomy of Beatport (as of Jan 2021) in an attempt to detect stylistic tendencies or repertoires within the Bandcamp libraries of (mainly) grasroots labels. To achieve this, an automatic subgenre classifier is trained on Beatport's Top-100 lists, which identifies the possible subgenres a track may belong to based on the audio analysis of its musical features. The classifier is then applied to detect the styles a Bandcamp library may belong to. The tracks pertaining to the whole library are first individually analysed, then distributed into groups or clusters based on their possible subgenre affiliations. The project output also shows the tags (folksonomies) added by the artists/labels to the Bandcamp pages (pertaining to the most representative tracks). It is therefore possible to compare the industry taxonomy of Beatport with the artist folksonomies, as long as such tags are provided on Bandcamp. The frequencies of localization tags detected in each cluster are also displayed in the output.
 
-A working demo of the Librarian is available under http://bit.ly/bandcamplibrarian.
+A working demo of the Librarian is available at https://bandcamplibrarian.vitos.tv.
 
 You can install the project from the command line by entering "pip install bandcamp-librarian". Note: prerequisite for the deployment is the installation of Docker Compose on your system (https://docs.docker.com/compose/install/).
 
