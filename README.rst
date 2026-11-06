@@ -8,12 +8,30 @@ Bandcamp Dance Librarian
 
 Bandcamp Dance Librarian—detecting stylistic tendencies in the Bandcamp libraries of electronic dance music labels
 
+Empirical Validation & Publication
+----------------------------------
+
+This repository serves as the core quantitative methodology and data engineering framework featured in the peer-reviewed book chapter:
+
+Vitos, B. (2026). "Genre Classification in Electronic Dance Music Culture: From Localised Histories to the Bandcamp Underground." In H. C. Rietveld & T. Young (Eds.), The Cambridge Companion to Electronic Dance Music. Cambridge University Press.
+
+Publication DOI: https://doi.org/10.1017/9781009215817.012
+
 Project Overview
 ----------------
 
 **Bandcamp Dance Librarian** is an end-to-end data pipeline and machine learning project engineered to detect hidden stylistic tendencies and structural repertoires across grassroots electronic music ecosystems.
 Using the industry-standard subgenre taxonomy of Beatport (as of January 2021), an automated **sk-learn ExtraTreesRegressor** was trained on specialized audio feature extractions. The model maps multi-dimensional acoustic traits to generate a probabilistic subgenre footprint for individual music tracks. These signatures are then fed into optimized **K-Means clustering routines** to partition extensive record libraries into distinct, data-driven stylistic categories.
 To evaluate the tension between rigid commercial structures and organic community tagging, the pipeline programmatically crawls and extracts user-generated metadata descriptors ("folksonomies") from Bandcamp pages. Additionally, an integrated **spaCy NLP pipeline** executes named-entity recognition across the clusters, parsing and tracking localization frequencies (geographical regions and cultural markers) to assess regional trends.
+
+
+Live Analytics Dashboard
+------------------------
+
+A Business Intelligence dashboard tracking the macro-level geographic cluster distributions and regional cross-genre matrices across the project’s full longitudinal dataset (~6,700 aggregate Bandcamp tracks spanning 1993–2021) is available live at: http://bclibvisual.vitos.tv/.
+ 
+**Note:** While this dashboard visualizes the pipeline's aggregate macro output, the peer-reviewed publication applies the underlying machine learning model to highly targeted, localized scenarios, specifically isolating single-label releases and dense regional subsets, such as the Berlin techno music ecosystem.
+
 
 Getting Started & Local Deployment
 ----------------------------------
