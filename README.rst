@@ -8,17 +8,49 @@ Bandcamp Dance Librarian
 
 Bandcamp Dance Librarian—detecting stylistic tendencies in the Bandcamp libraries of electronic dance music labels
 
-This project uses the subgenre taxonomy of Beatport (as of Jan 2021) in an attempt to detect stylistic tendencies or repertoires within the Bandcamp libraries of (mainly) grasroots labels. To achieve this, an automatic subgenre classifier is trained on Beatport's Top-100 lists, which identifies the possible subgenres a track may belong to based on the audio analysis of its musical features. The classifier is then applied to detect the styles a Bandcamp library may belong to. The tracks pertaining to the whole library are first individually analysed, then distributed into groups or clusters based on their possible subgenre affiliations. The project output also shows the tags (folksonomies) added by the artists/labels to the Bandcamp pages (pertaining to the most representative tracks). It is therefore possible to compare the industry taxonomy of Beatport with the artist folksonomies, as long as such tags are provided on Bandcamp. The frequencies of localization tags detected in each cluster are also displayed in the output.
+Project Overview
+----------------
 
-A working demo of the Librarian is available at https://bandcamplibrarian.vitos.tv.
+**Bandcamp Dance Librarian** is an end-to-end data pipeline and machine learning project engineered to detect hidden stylistic tendencies and structural repertoires across grassroots electronic music ecosystems.
+Using the industry-standard subgenre taxonomy of Beatport (as of January 2021), an automated **sk-learn ExtraTreesRegressor** was trained on specialized audio feature extractions. The model maps multi-dimensional acoustic traits to generate a probabilistic subgenre footprint for individual music tracks. These signatures are then fed into optimized **K-Means clustering routines** to partition extensive record libraries into distinct, data-driven stylistic categories.
+To evaluate the tension between rigid commercial structures and organic community tagging, the pipeline programmatically crawls and extracts user-generated metadata descriptors ("folksonomies") from Bandcamp pages. Additionally, an integrated **spaCy NLP pipeline** executes named-entity recognition across the clusters, parsing and tracking localization frequencies (geographical regions and cultural markers) to assess regional trends.
 
-You can install the project from the command line by entering "pip install bandcamp-librarian". Note: prerequisite for the deployment is the installation of Docker Compose on your system (https://docs.docker.com/compose/install/).
+Getting Started & Local Deployment
+----------------------------------
 
-After installation, enter "bandcamplibrarian -on" from the command line to initialize the docker service and access the web interface running on 0:0:0:0/8000. To switch off the service, use "bandcamplibrarian -off".
+You can install the stable release directly via PyPI:
+``pip install bandcamp-librarian``
 
-Alternatively, rename the .example_vars.env file to .vars.env, change POSTGRES_PASSWORD and FLASK_KEY in the file to your preferred values, and run Docker Compose from the project folder (e.g, sudo docker-compose up --detach --build).
+Prerequisites
+-------------
 
-* Free software: MIT license
+Deployment and local ingestion services run within isolated container environments and require Docker Compose pre-installed on your system.
+
+Run via Console Commands
+------------------------
+
+After pip installation, you can initialize the headless background services and spin up the Flask-powered user/admin dashboard locally via the command line:
+
+Initialize and launch the local service container (Web UI available on 0:0:0:0/8000):
+``bandcamplibrarian -on``
+
+Gracefully terminate containers and flush active session states:
+``bandcamplibrarian -off``
+
+
+Manual Compose Deployment
+-------------------------
+
+Alternatively, clone this repository directly to your machine and configure your local environment definitions:
+
+1. Rename the environment template file: ``.example_vars.env`` → ``.vars.env.``
+2. Edit ``.vars.env`` to provision your local ``POSTGRES_PASSWORD`` and cryptographic ``FLASK_KEY`` tokens.
+3. Trigger the orchestrated Docker build to spin up the independent scraper, PostgreSQL relational instance, and Flask analytics app: ``sudo docker-compose up --detach --build``
+
+
+License
+-------
+Distributed under the MIT License. See ``LICENSE`` for details.
 
 
 Features/Pipeline
@@ -72,7 +104,7 @@ The features for the clustering algorithm are the 32 class (subgenre) probabilit
 
 A PDF report is generated with the three highest subgenre probability values pertaining to the centroids and three track examples (i.e. tracks closest to their centroids based on Euclidean distance metering) in each cluster, with links to their Bandcamp pages and their associated Bandcamp folksonomies. The frequencies of localization tags (geographical locations and ethnicities) in each cluster are detected by means of the spaCy NLP library.
 
-References
+**References**
 
 Antonio Caparrini, Javier Arroyo, Laura Pérez-Molina and Jaime Sánchez-Hernández. 2020. "Automatic subgenre classification in an electronic dance music taxonomy." Journal of New Music Research 49(12):1-16.
 
